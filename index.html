@@ -1062,6 +1062,50 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .gacha-msg{font-family:'Share Tech Mono',monospace;font-size:.5rem;color:#666;font-style:italic}
 @keyframes gacha-pop{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
 
+/* ═══ GACHA RESULT OVERLAY ═══ */
+#gacha-result-overlay{position:absolute;inset:0;background:rgba(2,4,14,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;z-index:200;opacity:0;pointer-events:none;transition:opacity .35s;overflow:hidden}
+#gacha-result-overlay.active{opacity:1;pointer-events:all}
+#gacha-result-overlay::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#ffffff03 3px);pointer-events:none}
+.gr-banner{font-family:'Orbitron',sans-serif;font-size:clamp(.65rem,2.2vw,.88rem);font-weight:900;letter-spacing:.22em;text-transform:uppercase;margin-bottom:1rem;opacity:0;animation:gr-fadein .45s .1s ease forwards;text-shadow:0 0 20px currentColor}
+.gr-collect-btn{margin-top:1.2rem;padding:.5rem 2.2rem;border:1px solid #ffe600;background:transparent;color:#ffe600;font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.18em;cursor:pointer;border-radius:4px;transition:all .2s;opacity:0;animation:gr-fadein .4s .7s ease forwards;position:relative;z-index:3}
+.gr-collect-btn:hover{background:#ffe60018;box-shadow:0 0 20px #ffe60055,inset 0 0 20px #ffe60008}
+@keyframes gr-fadein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gr-pop{from{opacity:0;transform:scale(.55) translateY(24px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes gr-icon-pulse{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.1) rotate(2deg)}}
+@keyframes gr-shimmer{0%{left:-60%}100%{left:160%}}
+@keyframes gr-particle-fly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}}
+/* Unit reveal card */
+.gr-unit-card{width:min(300px,78vw);border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px #ffe60044,0 0 50px #ffe60033,0 0 100px #ffe60011;opacity:0;animation:gr-pop .5s .2s cubic-bezier(.34,1.56,.64,1) forwards;position:relative;z-index:3}
+.gr-unit-art{height:160px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.gr-unit-art-shimmer{position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:gr-shimmer 2.2s 0.5s ease infinite}
+.gr-unit-art-icon{font-size:4.5rem;position:relative;z-index:1;animation:gr-icon-pulse 3s ease-in-out infinite}
+.gr-new-badge{position:absolute;top:.5rem;right:.5rem;background:#ffe600;color:#000;font-family:'Orbitron',sans-serif;font-size:.42rem;font-weight:900;padding:.2rem .4rem;border-radius:2px;letter-spacing:.1em;z-index:2}
+.gr-unit-body{background:#060c1a;padding:.8rem .9rem}
+.gr-unit-name{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:.12em}
+.gr-unit-sub{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text-dim);margin:.2rem 0 .45rem}
+.gr-unit-stats{display:flex;gap:.9rem;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:#39ff14}
+.gr-charge-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ffe600;box-shadow:0 0 5px #ffe600;margin:0 2px}
+.gr-unit-flavour{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--text-dim);font-style:italic;margin-top:.45rem;line-height:1.5;border-top:1px solid #1a2a3a;padding-top:.4rem}
+/* Dupe message */
+.gr-dupe{text-align:center;opacity:0;animation:gr-pop .5s .2s cubic-bezier(.34,1.56,.64,1) forwards;position:relative;z-index:3}
+/* Card flip pack */
+.gr-cards-row{display:flex;gap:clamp(.5rem,2vw,.9rem);align-items:flex-start;flex-wrap:wrap;justify-content:center;max-width:min(520px,92vw);position:relative;z-index:3}
+.gr-flip{width:clamp(110px,26vw,148px);perspective:900px;opacity:0;animation:gr-fadein .3s ease forwards}
+.gr-flip-inner{width:100%;height:clamp(165px,40vw,198px);transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);transform:rotateY(180deg)}
+.gr-flip-inner.revealed{transform:rotateY(0deg)}
+.gr-flip-front,.gr-flip-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:8px;overflow:hidden}
+.gr-flip-back{background:linear-gradient(135deg,#0a1020,#111827);border:1px solid #1a2a3a;display:flex;align-items:center;justify-content:center;font-size:1.6rem;transform:rotateY(180deg)}
+.gr-flip-front{display:flex;flex-direction:column}
+.gr-card-art-area{height:clamp(60px,14vw,80px);display:flex;align-items:center;justify-content:center;font-size:clamp(1.6rem,4vw,2.2rem);flex-shrink:0;position:relative;overflow:hidden}
+.gr-card-art-shimmer{position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);animation:gr-shimmer 2s ease infinite}
+.gr-card-cost{position:absolute;top:.35rem;left:.35rem;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.55rem;font-weight:700;border:1px solid}
+.gr-card-info{flex:1;padding:.3rem .4rem;display:flex;flex-direction:column;gap:.15rem;background:#060c1a;overflow:hidden}
+.gr-card-name{font-family:'Orbitron',sans-serif;font-size:clamp(.42rem,.9vw,.54rem);font-weight:700;letter-spacing:.05em;line-height:1.2}
+.gr-card-type-label{font-family:'Share Tech Mono',monospace;font-size:.42rem;letter-spacing:.06em;opacity:.7}
+.gr-card-desc-text{font-family:'Share Tech Mono',monospace;font-size:.42rem;color:#7a9;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical}
+/* Particles */
+.gr-particle{position:absolute;border-radius:50%;pointer-events:none;z-index:1;animation:gr-particle-fly var(--dur) ease-out var(--delay) forwards;opacity:0}
+
 /* Credits in main menu top bar */
 .mm-credits-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:flex-end;padding:.6rem 1rem;gap:.5rem;pointer-events:none}
 .mm-credits-badge{display:none;align-items:center;gap:.45rem;font-family:'Share Tech Mono',monospace;font-size:.72rem;color:#ffe600;letter-spacing:.08em;background:#1a150033;border:1px solid #ffe60044;padding:.3rem .75rem;border-radius:2px}
@@ -1590,6 +1634,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   </div>
   <div style="flex:1;overflow-y:auto;padding:1rem">
     <div class="gacha-container" id="gacha-container"></div>
+  </div>
+  <div id="gacha-result-overlay">
+    <div class="gr-banner" id="gr-banner"></div>
+    <div id="gr-content"></div>
+    <button class="gr-collect-btn" onclick="closeGachaResult()">✓ COLLECT</button>
   </div>
 </div>
 
@@ -4222,15 +4271,173 @@ function renderGachaPanel(){
       <div class="gacha-panel-sub">Draw 1 random unit from the full roster.<br>Duplicate units refund 50 credits.</div>
       <div class="gacha-cost">◈ 200 CREDITS</div>
       <button class="gacha-pull-btn" id="gacha-unit-btn" onclick="doPullUnit()" ${credits < 200 ? 'disabled' : ''}>▶ PULL UNIT</button>
-      <div class="gacha-result" id="gacha-unit-result"></div>
     </div>
     <div class="gacha-panel">
       <div class="gacha-panel-title" style="color:#ffe600">◈ CARD PACK</div>
       <div class="gacha-panel-sub">Draw 3 random ability cards.<br>Respects per-card copy limits.</div>
       <div class="gacha-cost" style="color:#bf00ff">◈ 100 CREDITS</div>
       <button class="gacha-pull-btn gold" id="gacha-card-btn" onclick="doPullCards()" ${credits < 100 ? 'disabled' : ''}>▶ PULL CARDS</button>
-      <div class="gacha-result" id="gacha-card-result"></div>
     </div>`;
+}
+
+const ROLE_GRADS = {
+  Seeker:      'linear-gradient(160deg,#250818,#4a1030,#250818)',
+  Guardian:    'linear-gradient(160deg,#031828,#062e50,#031828)',
+  Phantom:     'linear-gradient(160deg,#1a0828,#320850,#1a0828)',
+  Sentinel:    'linear-gradient(160deg,#041828,#083450,#041828)',
+  Synth:       'linear-gradient(160deg,#051820,#0a3040,#051820)',
+  Weaver:      'linear-gradient(160deg,#051810,#0a2c20,#051810)',
+  Coordinator: 'linear-gradient(160deg,#1a1805,#302808,#1a1805)',
+  Architect:   'linear-gradient(160deg,#120a12,#221428,#120a12)',
+};
+const CARD_TYPE_COLORS = {
+  attack:    {bg:'#140505',border:'#ff4444',text:'#ff7777'},
+  buff:      {bg:'#05080f',border:'#4488ff',text:'#77aaff'},
+  shield:    {bg:'#051410',border:'#00ff88',text:'#44ffaa'},
+  heal:      {bg:'#051410',border:'#00ff88',text:'#44ffaa'},
+  move:      {bg:'#080510',border:'#aa44ff',text:'#cc77ff'},
+  push:      {bg:'#0f0800',border:'#ff9900',text:'#ffbb55'},
+  pushblock: {bg:'#050f0f',border:'#00f5ff',text:'#55ddff'},
+  draw:      {bg:'#050810',border:'#44bbff',text:'#77ccff'},
+  debuff:    {bg:'#0c0510',border:'#cc44ff',text:'#dd77ff'},
+  stun:      {bg:'#0f0800',border:'#ffaa00',text:'#ffcc55'},
+  swap:      {bg:'#080510',border:'#aa44ff',text:'#cc77ff'},
+};
+
+function spawnGachaParticles(color){
+  const overlay = document.getElementById('gacha-result-overlay');
+  if(!overlay) return;
+  const count = 28;
+  for(let i = 0; i < count; i++){
+    const p = document.createElement('div');
+    p.className = 'gr-particle';
+    const size = 4 + Math.random() * 8;
+    const angle = (Math.PI * 2 / count) * i + Math.random() * .4;
+    const dist  = 80 + Math.random() * 150;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist - Math.random() * 80;
+    p.style.cssText = `width:${size}px;height:${size}px;background:${color};box-shadow:0 0 ${size*2}px ${color};left:50%;top:50%;margin-left:${-size/2}px;margin-top:${-size/2}px;--tx:${tx}px;--ty:${ty}px;--dur:${.6+Math.random()*.8}s;--delay:${Math.random()*.25}s`;
+    overlay.appendChild(p);
+    setTimeout(() => p.remove(), 1600);
+  }
+}
+
+function showGachaUnitResult(data){
+  const overlay = document.getElementById('gacha-result-overlay');
+  const banner  = document.getElementById('gr-banner');
+  const content = document.getElementById('gr-content');
+  if(!overlay || !banner || !content) return;
+
+  const unit   = data.unit ? UNIT_TEMPLATES.find(u => u.id === data.unit) : null;
+  const isDupe = !data.unit && data.creditRefund > 0;
+  const rc   = unit ? (ROLE_COLORS[unit.role] || '#9ab') : '#ffe600';
+  const grad = unit ? (ROLE_GRADS[unit.role]  || 'linear-gradient(160deg,#0a1020,#1a2040)') : 'linear-gradient(160deg,#0a1020,#1a2040)';
+
+  // Force animation reset
+  banner.style.animation = 'none';
+  banner.offsetWidth;
+  banner.style.animation = '';
+  banner.style.color = rc;
+  banner.textContent  = isDupe ? '◈ DUPLICATE' : '◈ NEW UNIT ACQUIRED';
+
+  if(isDupe){
+    content.innerHTML = `
+      <div class="gr-dupe">
+        <div style="font-size:3rem;margin-bottom:.5rem;color:#ffe600">◈</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;color:#ffe600;letter-spacing:.15em">ALREADY OWNED</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text-dim);margin-top:.4rem">+${data.creditRefund} CREDITS REFUNDED</div>
+      </div>`;
+    spawnGachaParticles('#ffe60099');
+  } else if(unit){
+    let chargeDots = '';
+    for(let i = 0; i < unit.charges; i++) chargeDots += '<span class="gr-charge-dot"></span>';
+    const artContent = unit.image
+      ? `<img src="${unit.image}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`
+      : `<div class="gr-unit-art-icon">${unit.icon}</div>`;
+    content.innerHTML = `
+      <div class="gr-unit-card">
+        <div class="gr-unit-art" style="background:${grad}">
+          ${artContent}
+          <div class="gr-unit-art-shimmer"></div>
+          <div class="gr-new-badge">NEW</div>
+        </div>
+        <div class="gr-unit-body">
+          <div class="gr-unit-name" style="color:${rc}">${unit.name}</div>
+          <div class="gr-unit-sub">${unit.role.toUpperCase()} · ${unit.innate?.offensive?.name || 'INNATE'}</div>
+          <div class="gr-unit-stats">
+            <span>HP ${unit.endurance}</span>
+            <span>SYNC ${unit.sync}</span>
+            <span>${chargeDots}</span>
+          </div>
+          <div class="gr-unit-flavour">"${unit.flavour || ''}"</div>
+        </div>
+      </div>`;
+    spawnGachaParticles(rc + 'bb');
+  }
+  overlay.classList.add('active');
+}
+
+function showGachaCardResult(data){
+  const overlay = document.getElementById('gacha-result-overlay');
+  const banner  = document.getElementById('gr-banner');
+  const content = document.getElementById('gr-content');
+  if(!overlay || !banner || !content) return;
+
+  const cards   = (data.cards || []).map(cid => CARD_TEMPLATES[cid]).filter(Boolean);
+  const isEmpty = cards.length === 0;
+
+  banner.style.animation = 'none';
+  banner.offsetWidth;
+  banner.style.animation = '';
+  banner.style.color  = isEmpty ? '#ffe600' : '#bf00ff';
+  banner.textContent  = isEmpty ? '◈ NO NEW CARDS' : '◈ CARDS ACQUIRED';
+
+  if(isEmpty){
+    content.innerHTML = `
+      <div class="gr-dupe">
+        <div style="font-size:3rem;margin-bottom:.5rem;color:#ffe600">◈</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;color:#ffe600;letter-spacing:.15em">ALL CARDS MAXED</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text-dim);margin-top:.4rem">COLLECTION COMPLETE</div>
+      </div>`;
+    spawnGachaParticles('#ffe60099');
+  } else {
+    const flipCards = cards.map((card, i) => {
+      const tc = CARD_TYPE_COLORS[card.type] || CARD_TYPE_COLORS.attack;
+      return `
+        <div class="gr-flip" style="animation-delay:${i * .14}s">
+          <div class="gr-flip-inner" id="gr-flip-${i}">
+            <div class="gr-flip-front" style="background:${tc.bg};border:1px solid ${tc.border}55">
+              <div class="gr-card-art-area" style="background:${tc.bg}">
+                <span style="position:relative;z-index:1">${card.icon || '◈'}</span>
+                <div class="gr-card-art-shimmer"></div>
+                <div class="gr-card-cost" style="background:${tc.bg};border-color:${tc.border};color:${tc.text}">${card.cost}</div>
+              </div>
+              <div class="gr-card-info">
+                <div class="gr-card-name" style="color:${tc.text}">${card.name}</div>
+                <div class="gr-card-type-label" style="color:${tc.border}">${card.type.toUpperCase()}</div>
+                <div class="gr-card-desc-text">${card.desc}</div>
+              </div>
+            </div>
+            <div class="gr-flip-back">◈</div>
+          </div>
+        </div>`;
+    }).join('');
+    content.innerHTML = `<div class="gr-cards-row">${flipCards}</div>`;
+    cards.forEach((_, i) => {
+      setTimeout(() => {
+        const inner = document.getElementById(`gr-flip-${i}`);
+        if(inner) inner.classList.add('revealed');
+        if(i === 0) spawnGachaParticles('#bf00ffbb');
+      }, 350 + i * 300);
+    });
+  }
+  overlay.classList.add('active');
+}
+
+function closeGachaResult(){
+  const overlay = document.getElementById('gacha-result-overlay');
+  if(overlay) overlay.classList.remove('active');
+  renderGachaPanel();
 }
 
 async function doPullUnit(){
@@ -4243,21 +4450,10 @@ async function doPullUnit(){
     if(!res.ok){ alert(data.error || 'Pull failed'); renderGachaPanel(); return; }
     currentInventory.credits = data.creditsAfter;
     updateCreditsDisplay();
-    const resultEl = document.getElementById('gacha-unit-result');
-    if(resultEl){
-      resultEl.innerHTML = '<div class="gacha-result-label">RESULT</div>';
-      if(data.unit){
-        currentInventory.ownedUnits.add(data.unit);
-        const unit = UNIT_TEMPLATES.find(u => u.id === data.unit);
-        const rc = ROLE_COLORS[unit?.role] || '#9ab';
-        resultEl.innerHTML += `<div class="gacha-unit-reveal"><span style="font-size:1.4rem">${unit?.icon||'⚡'}</span><div><div style="font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:700;color:${rc}">${unit?.name||data.unit.toUpperCase()}</div><div style="font-family:'Share Tech Mono',monospace;font-size:.48rem;color:var(--text-dim)">${unit?.role?.toUpperCase()||''}</div></div></div>`;
-      } else {
-        resultEl.innerHTML += `<div class="gacha-msg">Collection complete! +${data.creditRefund} credits refunded.</div>`;
-      }
-    }
-    renderGachaPanel();
+    if(data.unit) currentInventory.ownedUnits.add(data.unit);
     renderCollectionUnits();
     renderDMUnitGrid();
+    showGachaUnitResult(data);
   } catch(e) { alert('Connection error'); renderGachaPanel(); }
 }
 
@@ -4272,21 +4468,9 @@ async function doPullCards(){
     currentInventory.credits    = data.creditsAfter;
     currentInventory.ownedCards = data.ownedCards;
     updateCreditsDisplay();
-    const resultEl = document.getElementById('gacha-card-result');
-    if(resultEl){
-      resultEl.innerHTML = '<div class="gacha-result-label">RESULT</div>';
-      if(data.cards?.length > 0){
-        data.cards.forEach(cid => {
-          const card = CARD_TEMPLATES[cid];
-          resultEl.innerHTML += `<div class="gacha-card-chip">${card?.icon||'◈'} ${card?.name||cid}</div>`;
-        });
-      } else {
-        resultEl.innerHTML += `<div class="gacha-msg">All cards maxed out!</div>`;
-      }
-    }
-    renderGachaPanel();
     renderCollectionCards();
     renderDMAbilityGrid();
+    showGachaCardResult(data);
   } catch(e) { alert('Connection error'); renderGachaPanel(); }
 }
 
