@@ -468,7 +468,7 @@ export async function handleAuth(request, env, corsHeaders) {
       'INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)'
     ).bind(token, id, expiresAt).run();
 
-    return new Response(JSON.stringify({ id, username }), {
+    return new Response(JSON.stringify({ id, username, token }), {
       headers: {
         'Content-Type': 'application/json',
         'Set-Cookie': sessionCookie(token),
@@ -498,7 +498,7 @@ export async function handleAuth(request, env, corsHeaders) {
     await env.DB.prepare('UPDATE users SET last_seen = unixepoch() WHERE id = ?')
       .bind(user.id).run();
 
-    return new Response(JSON.stringify({ id: user.id, username: user.username }), {
+    return new Response(JSON.stringify({ id: user.id, username: user.username, token }), {
       headers: {
         'Content-Type': 'application/json',
         'Set-Cookie': sessionCookie(token),

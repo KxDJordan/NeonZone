@@ -3958,7 +3958,7 @@ async function initApp(){
   // Always start on auth screen; switch away only when a valid session is confirmed
   showScreen('auth-screen');
   try {
-    const res = await fetch(`${WORKER_URL}/auth/me`, { credentials: 'include' });
+    const res = await authedFetch(`${WORKER_URL}/auth/me`);
     if(!res.ok) return; // 401 or any error → stay on auth screen
     const data = await res.json();
     if(!data || !data.username) return; // unexpected response → stay on auth screen
@@ -4006,7 +4006,8 @@ async function doLogin(){
     });
     const data = await res.json();
     if(!res.ok){ errEl.textContent = data.error || 'Login failed'; return; }
-    currentUser = data;
+    if(data.token) localStorage.setItem('nz_token', data.token);
+    currentUser = { id: data.id, username: data.username };
     await syncDecksFromServer();
     await loadInventory();
     updateUserBadge();
@@ -4035,7 +4036,8 @@ async function doRegister(){
     });
     const data = await res.json();
     if(!res.ok){ errEl.textContent = data.error || 'Registration failed'; return; }
-    currentUser = data;
+    if(data.token) localStorage.setItem('nz_token', data.token);
+    currentUser = { id: data.id, username: data.username };
     await syncDecksFromServer();
     await loadInventory();
     updateUserBadge();
@@ -4049,8 +4051,9 @@ async function doRegister(){
 
 async function doLogout(){
   try {
-    await fetch(`${WORKER_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+    await authedFetch(`${WORKER_URL}/auth/logout`, { method: 'POST' });
   } catch(e) { /* ignore */ }
+  localStorage.removeItem('nz_token');
   currentUser      = null;
   currentInventory = null;
   updateUserBadge();
@@ -4070,7 +4073,7 @@ function goGuestMode(){
 async function loadInventory(){
   if(!currentUser) return;
   try {
-    const res = await fetch(`${WORKER_URL}/inventory`, { credentials:'include' });
+    const res = await authedFetch(`${WORKER_URL}/inventory`);
     if(!res.ok) return;
     const data = await res.json();
     currentInventory = {
@@ -4235,7 +4238,7 @@ async function doPullUnit(){
   const btn = document.getElementById('gacha-unit-btn');
   if(btn) { btn.disabled = true; btn.textContent = '...'; }
   try {
-    const res = await fetch(`${WORKER_URL}/inventory/pull-unit`, { method:'POST', credentials:'include' });
+    const res = await authedFetch(`${WORKER_URL}/inventory/pull-unit`, { method:'POST' });
     const data = await res.json();
     if(!res.ok){ alert(data.error || 'Pull failed'); renderGachaPanel(); return; }
     currentInventory.credits = data.creditsAfter;
@@ -4263,7 +4266,7 @@ async function doPullCards(){
   const btn = document.getElementById('gacha-card-btn');
   if(btn) { btn.disabled = true; btn.textContent = '...'; }
   try {
-    const res = await fetch(`${WORKER_URL}/inventory/pull-cards`, { method:'POST', credentials:'include' });
+    const res = await authedFetch(`${WORKER_URL}/inventory/pull-cards`, { method:'POST' });
     const data = await res.json();
     if(!res.ok){ alert(data.error || 'Pull failed'); renderGachaPanel(); return; }
     currentInventory.credits    = data.creditsAfter;
@@ -4290,8 +4293,8 @@ async function doPullCards(){
 async function awardMatchCredits(won, perf = {}){
   if(!currentUser) return;
   try {
-    const res = await fetch(`${WORKER_URL}/match/reward`, {
-      method:'POST', credentials:'include',
+    const res = await authedFetch(`${WORKER_URL}/match/reward`, {
+      method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ won, ...perf }),
     });
@@ -4320,7 +4323,7 @@ function saveDecks(decks){
 async function syncDecksFromServer(){
   if(!currentUser) return;
   try {
-    const res = await fetch(`${WORKER_URL}/decks`, { credentials: 'include' });
+    const res = await authedFetch(`${WORKER_URL}/decks`);
     if(!res.ok) return;
     const serverDecks = await res.json();
     if(Array.isArray(serverDecks) && serverDecks.length > 0){
@@ -4332,8 +4335,8 @@ async function syncDecksFromServer(){
 async function pushDecksToServer(decks){
   if(!currentUser) return;
   try {
-    await fetch(`${WORKER_URL}/decks`, {
-      method: 'POST', credentials: 'include',
+    await authedFetch(`${WORKER_URL}/decks`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(decks),
     });
@@ -5471,6 +5474,14 @@ function saveWorkerUrl(){} // no-op — URL is hardcoded
 // ── Worker URL — single source of truth ──
 const WORKER_URL = 'https://neon-zone-tcg.kevv-djordan.workers.dev';
 function getWorkerUrl(){ return WORKER_URL; }
+
+// ── Authenticated fetch — Bearer token (mobile) + cookie (desktop) ──
+function authedFetch(url, options = {}){
+  const token = localStorage.getItem('nz_token');
+  const headers = { ...(options.headers || {}) };
+  if(token) headers['Authorization'] = `Bearer ${token}`;
+  return fetch(url, { ...options, credentials: 'include', headers });
+}
 
 function setOLMode(mode){
   document.getElementById('ol-join-row').style.display = mode === 'join' ? 'flex' : 'none';
