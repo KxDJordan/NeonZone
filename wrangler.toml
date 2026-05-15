@@ -1,0 +1,17 @@
+name = "neon-zone-tcg"
+main = "neon-zone-worker.js"
+compatibility_date = "2024-01-01"
+
+[[durable_objects.bindings]]
+name = "GAME_ROOM"
+class_name = "GameRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
+
+# D1 Database (new)
+[[d1_databases]]
+binding = "DB"
+database_name = "neon-zone-tcg-db"
+database_id   = "63059821-c932-4718-80a4-4cd8bc6c8c6f"   # fill in after: wrangler d1 create neon-zone-tcg-db
