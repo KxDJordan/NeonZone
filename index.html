@@ -1739,7 +1739,7 @@ const UNIT_TEMPLATES = [
 
 const CARD_TEMPLATES = {
   'blade-surge':{id:'blade-surge',name:'BLADE SURGE',bound:true,unit:'vex',cost:1,icon:'⚡',type:'attack',dmg:5,desc:'Deal 5 dmg. If target is below half HP, deal +2 additional dmg.',role:'any'},
-  'adrenaline-burst':{id:'adrenaline-burst',name:'ADRENALINE BURST',bound:true,unit:'vex',cost:1,icon:'💉',type:'buff',desc:'Restore 1 charge to VEX. Next attack this turn deals +2 dmg.',role:'any'},
+  'adrenaline-burst':{id:'adrenaline-burst',name:'ADRENALINE BURST',bound:true,unit:'vex',cost:0,icon:'💉',type:'buff',desc:'Restore 1 charge to VEX. Next attack this turn deals +2 dmg.',role:'any'},
   'overclock':{id:'overclock',name:'OVERCLOCK',bound:true,unit:'skar',cost:1,icon:'⚙️',type:'buff',desc:'SKAR may act twice this turn (gain +1 action).',role:'any'},
   'chain-push':{id:'chain-push',name:'CHAIN PUSH',bound:true,unit:'skar',cost:1,icon:'💥',type:'push',push:true,desc:'Push enemy team 1 zone back. If already pushed this turn, deal +2 dmg.',role:'any'},
   'double-tap':{id:'double-tap',name:'DOUBLE TAP',bound:true,unit:'kira',cost:1,icon:'👊',type:'attack',dmg:4,desc:'Attack twice at +1 dmg each hit. Both hits can be blocked separately.',role:'any'},
@@ -1782,8 +1782,8 @@ const CARD_TEMPLATES = {
   'charge-surge':{id:'charge-surge',name:'CHARGE SURGE',bound:true,unit:'lyra',cost:1,icon:'🔋',type:'buff',desc:'Restore 1 charge to all allied units simultaneously.',role:'any'},
   'network-tap':{id:'network-tap',name:'NETWORK TAP',bound:true,unit:'echo',cost:1,icon:'📡',type:'draw',draw:2,desc:'Draw 2 cards.',role:'any'},
   'amplify':{id:'amplify',name:'AMPLIFY',bound:true,unit:'echo',cost:1,icon:'📢',type:'buff',desc:'The next ally ability this turn deals +3 dmg or heals +3 HP.',role:'any'},
-  'overcharge':{id:'overcharge',name:'OVERCHARGE',bound:true,unit:'pulse',cost:1,icon:'⚡',type:'buff',desc:'Grant 2 charges to one ally. That ally may take an immediate extra action.',role:'any'},
-  'surge-transfer':{id:'surge-transfer',name:'SURGE TRANSFER',bound:true,unit:'pulse',cost:1,icon:'🔋',type:'buff',desc:'Transfer all of PULSE\'s charges to one ally. PULSE is left at 0.',role:'any'},
+  'overcharge':{id:'overcharge',name:'OVERCHARGE',bound:true,unit:'pulse',cost:0,icon:'⚡',type:'buff',desc:'Grant 2 charges to one ally. That ally may take an immediate extra action.',role:'any'},
+  'surge-transfer':{id:'surge-transfer',name:'SURGE TRANSFER',bound:true,unit:'pulse',cost:0,icon:'🔋',type:'buff',desc:'Transfer all of PULSE\'s charges to one ally. PULSE is left at 0.',role:'any'},
   'entropy':{id:'entropy',name:'ENTROPY',bound:true,unit:'flux',cost:1,icon:'🌀',type:'debuff',desc:'All enemy units lose 1 charge each.',role:'any'},
   'static-burst':{id:'static-burst',name:'STATIC BURST',bound:true,unit:'flux',cost:1,icon:'⚡',type:'attack',dmg:1,desc:'Deal 1 dmg to every unit on the entire field simultaneously.',role:'any'},
   'cloak-field':{id:'cloak-field',name:'CLOAK FIELD',bound:true,unit:'veil',cost:1,icon:'🌫️',type:'shield',desc:'All allies in zone cannot be targeted by cards for 1 full turn.',role:'any'},
@@ -1822,7 +1822,7 @@ const CARD_TEMPLATES = {
   'barrier-field':{id:'barrier-field',name:'BARRIER FIELD',bound:false,cost:1,icon:'🔵',type:'shield',maxCopies:3,desc:'Absorb 3 dmg for target ally. Guardians/Sentinels: absorb 5.',role:'any'},
   'quick-heal':{id:'quick-heal',name:'QUICK HEAL',bound:false,cost:1,icon:'💚',type:'heal',heal:4,maxCopies:3,desc:'Heal 4 HP. Synths/Weavers: heal 6 HP instead.',role:'any'},
   'push-wave':{id:'push-wave',name:'PUSH WAVE',bound:false,cost:1,icon:'🌊',type:'push',push:true,maxCopies:3,desc:'Push the entire enemy team 1 zone back.',role:'any'},
-  'charge-pack':{id:'charge-pack',name:'CHARGE PACK',bound:false,cost:1,icon:'🔋',type:'buff',maxCopies:3,desc:'Restore 1 charge to a target ally of your choice.',role:'any'},
+  'charge-pack':{id:'charge-pack',name:'CHARGE PACK',bound:false,cost:0,icon:'🔋',type:'buff',maxCopies:3,desc:'Restore 1 charge to a target ally of your choice.',role:'any'},
   'draw-protocol':{id:'draw-protocol',name:'DRAW PROTOCOL',bound:false,cost:1,icon:'📖',type:'draw',draw:2,maxCopies:3,desc:'Draw 2 cards. ECHO draws 3 instead.',role:'any'},
   'combo-hit':{id:'combo-hit',name:'COMBO HIT',bound:false,cost:1,icon:'💫',type:'attack',dmg:2,maxCopies:3,desc:'Deal 2 dmg. +2 if this unit already acted this turn.',role:'any'},
   'brace':{id:'brace',name:'BRACE',bound:false,cost:1,icon:'🛡',type:'pushblock',blockPush:true,partial:true,maxCopies:3,desc:'Interrupt: reduce a push — your team moves half a zone. Guardians/Sentinels/Coordinators/Architects: full cancel.',role:'any'},
@@ -2663,7 +2663,7 @@ function doAction(action){
   const unit = sel ? getActiveUnitById('A', sel) : null;
 
   if(action === 'attack'){
-    if(!unit || unit.currentCharges < 1 || G.actedUnits.has(unit.id)) return;
+    if(!unit || G.actedUnits.has(unit.id)) return; // innate costs no charges
     G.selection.mode = 'attack-target';
     render();
     return;
@@ -2727,7 +2727,7 @@ function executeAttack(attacker, target){
     // Local AI always blocks if a Guardian/Coordinator with charges is available
     const canInterrupt = canAIInterrupt(target, dmg);
     if(canInterrupt){
-      const guardian = G.active.B.find(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && u.currentCharges>0 && !G.actedUnits.has(u.id));
+      const guardian = G.active.B.find(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && !G.actedUnits.has(u.id));
       if(guardian){
         const reduction = guardian.innate.defensive.reduce || 0;
         const cancel = guardian.innate.defensive.cancel || false;
@@ -2777,14 +2777,15 @@ function executeAttack(attacker, target){
 }
 
 function canAIInterrupt(target, dmg){
-  return G.active.B.some(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && u.currentCharges>0 && G.field.B[u.id]!==undefined);
+  // Innate defensive costs no charges — available even at 0
+  return G.active.B.some(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && G.field.B[u.id]!==undefined);
 }
 
 // ── Push blocker helper ── returns first eligible push-blocking unit for a player
 function getPushBlocker(player){
+  // Innate defensive costs no charges
   return G.active[player].find(u =>
     u.innate?.defensive?.blockPush &&
-    u.currentCharges > 0 &&
     !G.actedUnits.has(u.id)
   ) || null;
 }
@@ -3358,7 +3359,8 @@ function runAITurn(){
 
 function buildAIActions(){
   const actions = [];
-  const units = G.active.B.filter(u => !G.actedUnits.has(u.id) && u.currentCharges > 0);
+  // Innate abilities cost no charges — include 0-charge units for attacks
+  const units = G.active.B.filter(u => !G.actedUnits.has(u.id));
   units.forEach(u => {
     if(G.jammedThisTurn.has(u.id)) return;
     // Priority: attack > push > heal
@@ -3366,7 +3368,7 @@ function buildAIActions(){
       const az = G.field.A[at.id]; const uz = G.field.B[u.id];
       return az !== undefined && uz !== undefined && Math.abs(az-uz) <= 1;
     });
-    if(aTargets.length > 0 && u.currentCharges > 0){
+    if(aTargets.length > 0){
       // target weakest
       const t = [...aTargets].sort((a,b)=>a.hp-b.hp)[0];
       actions.push({type:'attack', unit:u, target:t});
@@ -3391,22 +3393,24 @@ function executeAIActions(actions, idx){
     return;
   }
   const action = actions[idx];
-  // Show AI thinking shimmer before acting
   if(action.unit) showAIThinking(action.unit.id, 400);
 
   setTimeout(()=>{
+    // next is called only after the action fully resolves (incl. async interrupt)
+    const next = () => { render(); executeAIActions(actions, idx+1); };
+
     if(action.type === 'attack'){
       const u = getActiveUnitById('B', action.unit.id);
       const t = getActiveUnitById('A', action.target.id);
-      if(u && t && u.currentCharges > 0 && !G.actedUnits.has(u.id)){
-        aiAttack(u, t);
+      if(u && t && !G.actedUnits.has(u.id)){
+        aiAttack(u, t, next); // next called after interrupt resolves
+        return;
       }
     } else if(action.type === 'push'){
       const u = getActiveUnitById('B', action.unit.id);
-      if(u && u.currentCharges > 0 && !G.actedUnits.has(u.id)){
+      if(u && !G.actedUnits.has(u.id)){
         showAbilityPopup(u.id, 'B', u.innate.offensive.name, 'push', 'PUSH');
         showActionBadge(u.id, 'B', '⟹ PUSH', 'attacker', 900);
-        // Innate costs no charges
         G.actedUnits.add(u.id);
         doPush('B', u);
       }
@@ -3432,34 +3436,30 @@ function executeAIActions(actions, idx){
         }
       }
     }
-    render();
-    executeAIActions(actions, idx+1);
+    next();
   }, 600);
 }
 
-function aiAttack(attacker, target){
+function aiAttack(attacker, target, done){
   // Innate offensive costs no charges
   G.actedUnits.add(attacker.id);
   const ability = attacker.innate.offensive;
   let dmg = ability.dmg || 0;
   if(G.chainBonus.B){ dmg += G.chainBonus.B; G.chainBonus.B=0; }
 
-  // Show who is attacking and what they're using
   showAbilityPopup(attacker.id, 'B', ability.name, ability.push ? 'push' : 'attack', `DMG ${dmg}${ability.push?' + PUSH':''}`);
   showActionBadge(attacker.id, 'B', '⚔ ATTACKING', 'attacker', 1100);
   showAttackArrow(attacker.id, 'B', target.id, 'A');
   showActionBadge(target.id, 'A', '💥 TARGETED', 'targeting', 900);
 
-  // Player interrupt
-  const guardians = G.active.A.filter(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && u.currentCharges>0 && !G.actedUnits.has(u.id));
-  let blocked = false;
+  // Innate defensive abilities cost no charges — guardians with 0 charges can still interrupt
+  const guardians = G.active.A.filter(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && !G.actedUnits.has(u.id));
   if(guardians.length > 0){
     showInterrupt(attacker, target, dmg, (playerBlocked)=>{
       if(playerBlocked){
         const g = guardians[0];
         const reduction = g.innate.defensive.reduce||0;
         const cancel = g.innate.defensive.cancel||false;
-        // Innate defensive costs no charges
         if(cancel){
           showAbilityPopup(g.id, 'A', g.innate.defensive.name, 'shield', 'NULLIFY!');
           showActionBadge(g.id, 'A', '🛡 NULLIFY', 'defender', 1000);
@@ -3471,10 +3471,12 @@ function aiAttack(attacker, target){
         }
       }
       applyAIDmg(attacker, target, dmg, ability);
+      if(done) done(); // continue AI actions after interrupt resolves
     });
-    return;
+    return; // wait for interrupt; done called from callback above
   }
   applyAIDmg(attacker, target, dmg, ability);
+  if(done) done();
 }
 
 function applyAIDmg(attacker, target, dmg, ability){
