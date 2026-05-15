@@ -254,6 +254,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 /* Hand toggle button */
 #hand-toggle{position:absolute;bottom:118px;left:50%;transform:translateX(-50%);z-index:35;padding:.25rem .9rem;border:1px solid #2a3a4a;background:#0d1220cc;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.6rem;cursor:pointer;border-radius:3px;transition:all .15s;backdrop-filter:blur(4px);letter-spacing:.08em}
 #hand-toggle:hover{border-color:var(--neon-cyan);color:var(--neon-cyan)}
+/* BENCH TOGGLE TAB — shown only on mobile */
+#bench-toggle-btn{display:none;position:absolute;bottom:155px;left:0;z-index:29;align-items:center;gap:.3rem;padding:.3rem .5rem .3rem .35rem;background:#0d1220cc;border:1px solid #2a3a4a;border-left:none;border-radius:0 3px 3px 0;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.6rem;cursor:pointer;backdrop-filter:blur(4px);letter-spacing:.06em;transition:all .15s}
+#bench-toggle-btn:hover{border-color:var(--neon-cyan);color:var(--neon-cyan)}
+#bench-toggle-btn.has-units{color:var(--neon-cyan);border-color:#00f5ff55}
+/* Mobile overrides */
+@media(max-width:600px){
+  #bench-toggle-btn{display:flex}
+  #bench-panel{transform:translateX(calc(-100% - 8px));transition:transform .25s cubic-bezier(.4,0,.2,1)}
+  #bench-panel.open{transform:translateX(0)}
+  .game-log{bottom:auto!important;top:48px;max-height:110px;width:155px;font-size:.52rem}
+}
 /* ACTION BAR */
 .action-bar{display:flex;gap:.4rem;padding:.4rem .5rem;background:var(--bg2);border-top:1px solid #1a2a3a;flex-shrink:0;align-items:center;justify-content:center;flex-wrap:wrap}
 .action-btn{padding:.35rem .8rem;border:1px solid #2a3a4a;background:transparent;color:var(--text);font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.75rem;cursor:pointer;border-radius:3px;transition:all .15s;letter-spacing:.05em;text-transform:uppercase}
@@ -1399,6 +1410,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
         </div>
 
         <!-- Floating bench panel — bottom left -->
+        <button id="bench-toggle-btn" onclick="toggleBench()">⊞ BENCH <span id="bench-count-badge">0</span></button>
         <div id="bench-panel">
           <div id="bench-panel-label">BENCH</div>
           <div id="bench-units-a"></div>
@@ -1419,7 +1431,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
     <div class="action-bar" id="action-bar">
       <button class="action-btn" id="btn-attack" onclick="doAction('attack')">⚔ Attack</button>
       <button class="action-btn" id="btn-defend" onclick="doAction('defend')">🛡 Defend</button>
-      <button class="action-btn" id="btn-play-card" onclick="doAction('play-card')">🃏 Play Card</button>
       <button class="action-btn" id="btn-sub" onclick="doAction('sub')">↔ Sub</button>
       <button class="action-btn end-turn" onclick="endTurn()">END TURN ▶</button>
       <div class="action-hint" id="hint-text">Select one of your active units to act</div>
@@ -2178,6 +2189,12 @@ function renderBench(){
   const cont = document.getElementById('bench-units-a');
   if(!cont) return;
   cont.innerHTML = '';
+  // Update mobile toggle badge
+  const count = bench.filter(Boolean).length;
+  const badge = document.getElementById('bench-count-badge');
+  if(badge) badge.textContent = count;
+  const toggleBtn = document.getElementById('bench-toggle-btn');
+  if(toggleBtn) toggleBtn.classList.toggle('has-units', count > 0);
   const isSub = G.selection.mode === 'sub-select' && G.turn === 'A';
   for(let i=0;i<3;i++){
     if(bench[i]){
@@ -2295,6 +2312,11 @@ function toggleHand(){
   renderHand();
 }
 
+function toggleBench(){
+  const panel = document.getElementById('bench-panel');
+  if(panel) panel.classList.toggle('open');
+}
+
 function updateHUD(){
   if(!G.score) return;
   document.getElementById('score-a').textContent = G.score.A;
@@ -2323,7 +2345,6 @@ function updateActionButtons(){
 
   document.getElementById('btn-attack').disabled = !canInnate;
   document.getElementById('btn-defend').disabled = !canInnate;
-  document.getElementById('btn-play-card').disabled = !(isPlayerA && sel);
   document.getElementById('btn-sub').disabled = !isPlayerA || G.bench.A.length === 0;
 
   let hint = 'Select one of your active units to act';
@@ -3902,6 +3923,11 @@ function showScreen(id){
     const el = document.getElementById(s);
     if(el) el.classList.toggle('hidden', s !== id);
   });
+  if(id === 'main-menu-screen'){
+    updateCreditsDisplay();
+    // Retry inventory load if it failed or hasn't run yet
+    if(currentUser && !currentInventory) loadInventory();
+  }
 }
 
 function goMainMenu(){ showScreen('main-menu-screen'); }
