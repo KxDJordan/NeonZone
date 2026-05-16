@@ -707,7 +707,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 
 /* ── ABILITY NAME POPUP ── floats above the acting unit card */
 .ability-popup{position:fixed;pointer-events:none;z-index:9990;display:flex;flex-direction:column;align-items:center;gap:2px;animation:ability-rise 1.4s ease-out forwards}
-@keyframes ability-rise{0%{opacity:0;transform:translateX(-50%) scale(.75) translateY(0px)}12%{opacity:1;transform:translateX(-50%) scale(1.08) translateY(-10px)}70%{opacity:1;transform:translateX(-50%) scale(1) translateY(-24px)}100%{opacity:0;transform:translateX(-50%) scale(.9) translateY(-40px)}}
+@keyframes ability-rise{0%{opacity:0;transform:translateX(-50%) translateY(-50%) scale(.75)}12%{opacity:1;transform:translateX(-50%) translateY(calc(-50% - 12px)) scale(1.08)}70%{opacity:1;transform:translateX(-50%) translateY(calc(-50% - 28px)) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(calc(-50% - 48px)) scale(.9)}}
 .ability-popup-name{font-family:'Orbitron',sans-serif;font-weight:900;font-size:.72rem;letter-spacing:.08em;padding:3px 8px;border-radius:4px;white-space:nowrap;text-shadow:0 0 8px currentColor;border:1px solid currentColor}
 .ability-popup-name.type-attack{color:#ff4466;background:#2a0010cc;border-color:#ff446688}
 .ability-popup-name.type-push{color:#ffe600;background:#1a1200cc;border-color:#ffe60088}
@@ -3408,6 +3408,19 @@ function endTurn(){
 
   // Voluntary sub for A already done via button
 
+  // Sub B's KO'd units — delay past the 320ms KO removal timer
+  setTimeout(()=>{
+    if(G.active.B.length < 3 && G.bench.B.length > 0){
+      const incoming = G.bench.B.shift();
+      const zone = roleBasedZone('B', incoming, 2);
+      G.active.B.push(incoming);
+      G.field.B[incoming.id] = zone;
+      addUnitCards('B', incoming.id);
+      addLog(`${incoming.name} enters the field for B!`,'info');
+      render();
+    }
+  }, 400);
+
   // Switch turn
   G.turn = 'B';
   G.actedUnits = new Set();
@@ -3532,13 +3545,25 @@ function aiAttack(attacker, target, done){
   showActionBadge(target.id, 'A', '💥 TARGETED', 'targeting', 900);
 
   // Innate defensive auto-applies for free — reduces damage only, never cancels
+  // The blocked portion is rerouted to the guardian as actual damage
   const guardian = G.active.A.find(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && !G.actedUnits.has(u.id));
   if(guardian && guardian.innate.defensive.reduce > 0){
     const def = guardian.innate.defensive;
-    showAbilityPopup(guardian.id, 'A', def.name, 'shield', `−${def.reduce} DMG`);
+    const blocked = Math.min(def.reduce, dmg);
+    dmg = Math.max(0, dmg - blocked);
+    showAbilityPopup(guardian.id, 'A', def.name, 'shield', `−${blocked} DMG`);
     showActionBadge(guardian.id, 'A', '🛡 BLOCK', 'defender', 1000);
-    dmg = Math.max(0, dmg - def.reduce);
-    addLog(`${guardian.name}: ${def.name} — dmg reduced by ${def.reduce}.`, 'info');
+    addLog(`${guardian.name}: ${def.name} — absorbs ${blocked} dmg.`, 'info');
+    const gShield = G.shields[guardian.id] || 0;
+    const gActual = Math.max(0, blocked - gShield);
+    G.shields[guardian.id] = Math.max(0, gShield - blocked);
+    guardian.hp = Math.max(0, guardian.hp - gActual);
+    if(gActual > 0){
+      FX.spawnHit(guardian.id, 'A', '#00aaff');
+      spawnDmgNumber(guardian.id, 'A', gActual, 'dmg');
+      flashUnit(guardian.id, 'A', 'hit');
+    }
+    if(guardian.hp <= 0) handleTakedown('B', guardian, 'A');
   }
   applyAIDmg(attacker, target, dmg, ability);
   if(done) done();
@@ -3721,6 +3746,16 @@ function endAITurn(){
     G.field.B[incoming.id] = zone;
     addUnitCards('B', incoming.id);
     addLog(`${incoming.name} enters the field for B!`,'info');
+  }
+
+  // Mandatory sub A — units KO'd during B's turn (removal already fired after 320ms)
+  if(G.active.A.length < 3 && G.bench.A.length > 0){
+    const incoming = G.bench.A.shift();
+    const zone = roleBasedZone('A', incoming, 2);
+    G.active.A.push(incoming);
+    G.field.A[incoming.id] = zone;
+    addUnitCards('A', incoming.id);
+    addLog(`${incoming.name} enters the field!`,'info');
   }
 
   G.turn = 'A';
@@ -4016,11 +4051,16 @@ function spawnDmgNumber(unitId, player, value, type='dmg'){
 
 // ── Ability name popup — floats above the acting unit ──
 function showAbilityPopup(unitId, player, abilityName, type='attack', subtext=''){
-  const card = document.querySelector(`.unit-card[data-unit-id="${unitId}"][data-player="${player}"]`);
-  if(!card) return;
+  // Prefer the fight-position card (not on-shelf) so chain units in off-zone positions
+  // still show over a visible element; fall back to any matching card.
+  const all = [...document.querySelectorAll(`.unit-card[data-unit-id="${unitId}"][data-player="${player}"]`)];
+  if(!all.length) return;
+  const card = all.find(c => !c.classList.contains('on-shelf')) || all[0];
   const cr = card.getBoundingClientRect();
-  const x = cr.left + cr.width / 2;
-  const y = cr.top  + cr.height / 2;
+  // Center of card; clamp to viewport so off-screen units still show visibly
+  const margin = 60;
+  const x = Math.max(margin, Math.min(window.innerWidth  - margin, cr.left + cr.width  / 2));
+  const y = Math.max(margin, Math.min(window.innerHeight - margin, cr.top  + cr.height / 2));
   const wrap = document.createElement('div');
   wrap.className = 'ability-popup';
   wrap.style.left = x + 'px';
@@ -5664,7 +5704,27 @@ function applyOpponentAction(action){
       const attacker = getActiveUnitById('B', action.attackerId);
       const target   = getActiveUnitById('A', action.targetId);
       if(attacker && target){
-        const dmg = action.dmg || 0;
+        let dmg = action.dmg || 0;
+        // Guardian innate block reroutes absorbed damage to guardian
+        const guardian = G.active.A.find(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && u.id !== target.id && !G.actedUnits.has(u.id));
+        if(guardian && guardian.innate?.defensive?.reduce > 0){
+          const def = guardian.innate.defensive;
+          const blocked = Math.min(def.reduce, dmg);
+          dmg = Math.max(0, dmg - blocked);
+          showAbilityPopup(guardian.id, 'A', def.name, 'shield', `−${blocked} DMG`);
+          showActionBadge(guardian.id, 'A', '🛡 BLOCK', 'defender', 1000);
+          addLog(`${guardian.name}: ${def.name} — absorbs ${blocked} dmg.`, 'info');
+          const gShield = G.shields[guardian.id] || 0;
+          const gActual = Math.max(0, blocked - gShield);
+          G.shields[guardian.id] = Math.max(0, gShield - blocked);
+          guardian.hp = Math.max(0, guardian.hp - gActual);
+          if(gActual > 0){
+            FX.spawnHit(guardian.id, 'A', '#00aaff');
+            spawnDmgNumber(guardian.id, 'A', gActual, 'dmg');
+            flashUnit(guardian.id, 'A', 'hit');
+          }
+          if(guardian.hp <= 0) handleTakedown('B', guardian, 'A');
+        }
         const shield = G.shields[target.id]||0;
         const actual = Math.max(0, dmg - shield);
         G.shields[target.id] = Math.max(0, shield - dmg);
@@ -5743,6 +5803,27 @@ function handleOpponentEndTurn(){
   drawCards('B', 2);
   G.round++;
   clearSelection();
+  // Sub local player's units KO'd during opponent's turn
+  if(G.active.A.length < 3 && G.bench.A.length > 0){
+    const incoming = G.bench.A.shift();
+    const zone = roleBasedZone('A', incoming, 2);
+    G.active.A.push(incoming);
+    G.field.A[incoming.id] = zone;
+    addUnitCards('A', incoming.id);
+    addLog(`${incoming.name} enters the field!`,'info');
+  }
+  // Sub opponent units KO'd during their own turn (delay for KO removal timer)
+  setTimeout(()=>{
+    if(G.active.B.length < 3 && G.bench.B.length > 0){
+      const incoming = G.bench.B.shift();
+      const zone = roleBasedZone('B', incoming, 2);
+      G.active.B.push(incoming);
+      G.field.B[incoming.id] = zone;
+      addUnitCards('B', incoming.id);
+      addLog(`${incoming.name} enters the field for opponent!`,'info');
+      render();
+    }
+  }, 400);
   render();
   addLog('=== YOUR TURN ===', 'info');
 }
