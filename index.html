@@ -3010,10 +3010,18 @@ function handleTakedown(scorer, unit, loser){
   animateScore(scorer);
   showPointBanner(`+1 · ${scorer} SCORES`, scorer==='A'?'cyan':'pink');
   drawCards(scorer, 1);
-  // Remove from field after brief delay for death anim
+  // Remove from field after brief delay for death anim, then auto-sub
   setTimeout(()=>{
     G.active[loser] = G.active[loser].filter(u => u.id !== unit.id);
     delete G.field[loser][unit.id];
+    if(G.score.A < 5 && G.score.B < 5 && G.active[loser].length < 3 && G.bench[loser].length > 0){
+      const incoming = G.bench[loser].shift();
+      const zone = roleBasedZone(loser, incoming, 2);
+      G.active[loser].push(incoming);
+      G.field[loser][incoming.id] = zone;
+      addUnitCards(loser, incoming.id);
+      addLog(`${incoming.name} enters the field for ${loser}!`, 'info');
+    }
     render();
   }, 320);
   checkWin();
@@ -3152,6 +3160,8 @@ function executeCard(card, caster){
   // Cards that need a target
   if(card.type === 'attack' || card.type === 'heal' || card.type === 'stun' ||
      (card.type === 'buff' && card.id === 'charge-pack') ||
+     (card.type === 'buff' && card.id === 'overcharge') ||
+     (card.type === 'buff' && card.id === 'tactical-relay') ||
      (card.type === 'shield' && card.id === 'barrier-field')){
     G.selection.mode = 'card-target';
     render();
@@ -3266,11 +3276,23 @@ function executeCardEffect(card, caster, target, targetPlayer){
       });
       addLog(`${caster.name}: Charge Surge — all allies +1 charge.`,'heal');
     }
+    else if(card.id === 'overcharge'){
+      if(target && target.id !== caster.id){
+        target.currentCharges = Math.min(target.charges, target.currentCharges + 2);
+        G.actedUnits.delete(target.id);
+        showAbilityPopup(target.id, G.turn, 'OVERCHARGE!', 'buff', '+2⚡ ACT AGAIN');
+        addLog(`${caster.name}: OVERCHARGE → ${target.name} +2 charges, acts again!`,'heal');
+        spawnDmgNumber(target.id, G.turn, '+⚡⚡', 'heal');
+      }
+    }
     else if(card.id === 'tactical-relay'){
-      G.actedUnits.delete(caster.id);
-      // Also net restore caster's charge (add 1 to offset cost)
-      caster.currentCharges = Math.min(caster.charges, caster.currentCharges + 1);
-      addLog(`${caster.name}: Tactical Relay — action refreshed.`,'info');
+      if(target && target.id !== caster.id){
+        G.actedUnits.delete(target.id);
+        target.currentCharges = Math.min(target.charges, target.currentCharges + 1);
+        showAbilityPopup(target.id, G.turn, 'RELAY!', 'buff', 'ACT AGAIN');
+        addLog(`${caster.name}: Tactical Relay → ${target.name} may act again!`,'heal');
+        spawnDmgNumber(target.id, G.turn, '+⚡', 'heal');
+      }
     }
     else if(card.id === 'amplify'){
       G.amplifyActive[G.turn] = true;
@@ -3422,30 +3444,7 @@ function endTurn(){
   checkBackZone();
   if(checkWin()) return;
 
-  // Mandatory sub for A
-  if(G.active.A.length < 3 && G.bench.A.length > 0){
-    const incoming = G.bench.A.shift();
-    const zone = roleBasedZone('A', incoming, 2);
-    G.active.A.push(incoming);
-    G.field.A[incoming.id] = zone;
-    addUnitCards('A', incoming.id);
-    addLog(`${incoming.name} enters the field!`,'info');
-  }
 
-  // Voluntary sub for A already done via button
-
-  // Sub B's KO'd units — delay past the 320ms KO removal timer
-  setTimeout(()=>{
-    if(G.active.B.length < 3 && G.bench.B.length > 0){
-      const incoming = G.bench.B.shift();
-      const zone = roleBasedZone('B', incoming, 2);
-      G.active.B.push(incoming);
-      G.field.B[incoming.id] = zone;
-      addUnitCards('B', incoming.id);
-      addLog(`${incoming.name} enters the field for B!`,'info');
-      render();
-    }
-  }, 400);
 
   // Switch turn
   G.turn = 'B';
@@ -3478,11 +3477,12 @@ function runAITurn(){
 function buildAIActions(){
   const actions = [];
   // Innate abilities cost no charges — include 0-charge units for attacks
-  const units = G.active.B.filter(u => !G.actedUnits.has(u.id));
+  const units = G.active.B.filter(u => !G.actedUnits.has(u.id) && u.hp > 0);
   units.forEach(u => {
     if(G.jammedThisTurn.has(u.id)) return;
     // Priority: attack > push > heal
     const aTargets = G.active.A.filter(at => {
+      if(at.hp <= 0) return false;
       const az = G.field.A[at.id]; const uz = G.field.B[u.id];
       return az !== undefined && uz !== undefined && Math.abs(az-uz) <= 1;
     });
@@ -3520,13 +3520,13 @@ function executeAIActions(actions, idx){
     if(action.type === 'attack'){
       const u = getActiveUnitById('B', action.unit.id);
       const t = getActiveUnitById('A', action.target.id);
-      if(u && t && !G.actedUnits.has(u.id)){
+      if(u && u.hp > 0 && t && t.hp > 0 && !G.actedUnits.has(u.id)){
         aiAttack(u, t, next); // next called after interrupt resolves
         return;
       }
     } else if(action.type === 'push'){
       const u = getActiveUnitById('B', action.unit.id);
-      if(u && !G.actedUnits.has(u.id)){
+      if(u && u.hp > 0 && !G.actedUnits.has(u.id)){
         showAbilityPopup(u.id, 'B', u.innate.offensive.name, 'push', 'PUSH');
         showActionBadge(u.id, 'B', '⟹ PUSH', 'attacker', 900);
         G.actedUnits.add(u.id);
@@ -3535,7 +3535,7 @@ function executeAIActions(actions, idx){
     } else if(action.type === 'card'){
       const u = getActiveUnitById('B', action.unit.id);
       const t = action.targetPlayer==='B' ? getActiveUnitById('B', action.target.id) : getActiveUnitById('A', action.target.id);
-      if(u && t && u.currentCharges >= (action.card.cost||1)){
+      if(u && u.hp > 0 && t && t.hp > 0 && u.currentCharges >= (action.card.cost||1)){
         const cidx = G.hand.B.findIndex(c=>c.deckId===action.card.deckId);
         if(cidx>=0){
           G.turn = 'B';
@@ -3763,26 +3763,6 @@ function endAITurn(){
   if(G.turn !== 'B') return;
   checkBackZone();
   if(checkWin()) return;
-
-  // Mandatory sub B
-  if(G.active.B.length < 3 && G.bench.B.length > 0){
-    const incoming = G.bench.B.shift();
-    const zone = roleBasedZone('B', incoming, 2);
-    G.active.B.push(incoming);
-    G.field.B[incoming.id] = zone;
-    addUnitCards('B', incoming.id);
-    addLog(`${incoming.name} enters the field for B!`,'info');
-  }
-
-  // Mandatory sub A — units KO'd during B's turn (removal already fired after 320ms)
-  if(G.active.A.length < 3 && G.bench.A.length > 0){
-    const incoming = G.bench.A.shift();
-    const zone = roleBasedZone('A', incoming, 2);
-    G.active.A.push(incoming);
-    G.field.A[incoming.id] = zone;
-    addUnitCards('A', incoming.id);
-    addLog(`${incoming.name} enters the field!`,'info');
-  }
 
   G.turn = 'A';
   G.actedUnits = new Set();
