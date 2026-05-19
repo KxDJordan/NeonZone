@@ -2818,13 +2818,24 @@ function executeAttack(attacker, target){
     // Local AI always blocks if a Guardian/Coordinator with charges is available
     const canInterrupt = canAIInterrupt(target, dmg);
     if(canInterrupt){
-      const guardian = G.active.B.find(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && !G.actedUnits.has(u.id));
+      const guardian = G.active.B.find(u => (DEFENDER_ROLES.has(u.role)||CTRL_ROLES.has(u.role)) && u.id !== target.id && !G.actedUnits.has(u.id));
       if(guardian && guardian.innate.defensive.reduce > 0){
-        const reduction = guardian.innate.defensive.reduce;
-        showAbilityPopup(guardian.id, 'B', guardian.innate.defensive.name, 'shield', `−${reduction} DMG`);
+        const def = guardian.innate.defensive;
+        const blockedAmt = Math.min(def.reduce, dmg);
+        dmg = Math.max(0, dmg - blockedAmt);
+        showAbilityPopup(guardian.id, 'B', def.name, 'shield', `−${blockedAmt} DMG`);
         showActionBadge(guardian.id, 'B', '🛡 BLOCK', 'defender', 1000);
-        dmg = Math.max(0, dmg - reduction);
-        addLog(`${guardian.name} blocks! Dmg reduced by ${reduction}.`,'info');
+        addLog(`${guardian.name}: ${def.name} — absorbs ${blockedAmt} dmg.`, 'info');
+        const gShield = G.shields[guardian.id] || 0;
+        const gActual = Math.max(0, blockedAmt - gShield);
+        G.shields[guardian.id] = Math.max(0, gShield - blockedAmt);
+        guardian.hp = Math.max(0, guardian.hp - gActual);
+        if(gActual > 0){
+          FX.spawnHit(guardian.id, 'B', '#00aaff');
+          spawnDmgNumber(guardian.id, 'B', gActual, 'dmg');
+          flashUnit(guardian.id, 'B', 'hit');
+        }
+        if(guardian.hp <= 0) handleTakedown('A', guardian, 'B');
       }
     }
   }
@@ -5475,6 +5486,7 @@ const NET = (() => {
         olStatus(`Opponent connected! ${msg.playerCount}/2 players ready.`);
         showOLPlayerStatus(msg.playerCount);
         olChatSystem('Opponent joined the room.');
+        showOLDeckSelect();
         break;
 
       case 'opponent_ready':
